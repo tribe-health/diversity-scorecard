@@ -1,16 +1,22 @@
-import { openai } from "@ai-sdk/openai";
-import { getEdgeRuntimeResponse } from "@assistant-ui/react/edge";
+import { createAzure } from "@ai-sdk/azure";
+import { streamText, convertToCoreMessages } from "ai";
 
 export const maxDuration = 30;
 
-export const POST = async (request: Request) => {
-  const requestData = await request.json();
+const openai = createAzure({
+  apiKey: process.env.AZURE_OPENAI_API_KEY!,
+  baseURL: process.env.AZURE_OPENAI_API_ENDPOINT!,
+  resourceName: process.env.AZURE_OPENAI_API_RESOURCE_NAME!,
+  apiVersion: process.env.AZURE_OPENAI_API_VERSION!
+});
 
-  return getEdgeRuntimeResponse({
-    options: {
-      model: openai("gpt-4o"),
-    },
-    requestData,
-    abortSignal: request.signal,
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: openai("gpt-4o"),
+    messages: convertToCoreMessages(messages),
   });
-};
+
+  return result.toDataStreamResponse();
+}

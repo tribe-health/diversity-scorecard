@@ -1,0 +1,56 @@
+import { readFile } from "fs/promises";
+import { createRequire } from "module";
+import type { NextConfig } from "next";
+import { join } from "path";
+import webpack from 'webpack';
+
+async function getPackageJson(module: string) {
+  const require = createRequire(import.meta.url)
+  const entryPoint = require.resolve(module)
+  const [nodeModulePath] = entryPoint.split(module)
+
+  const packagePath = join(nodeModulePath, module, 'package.json')
+  const packageJson = JSON.parse(await readFile(packagePath, 'utf8'))
+
+  return packageJson
+}
+
+async function getPackageVersion(module: string) {
+  const packageJson = await getPackageJson(module)
+  return packageJson.version
+}
+
+const initConfig = async (): Promise<NextConfig> => {
+  return {
+    reactStrictMode: false,
+    env: {
+      NEXT_PUBLIC_PGLITE_VERSION: await getPackageVersion('@electric-sql/pglite'),
+    },
+    webpack: (config) => {
+      config.resolve = {
+        ...config.resolve,
+        fallback: {
+          fs: false,
+          module: false,
+          'stream/promises': false,
+        },
+      }
+
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          ReadableStream: [join(import.meta.dirname, 'polyfills/readable-stream.ts'), 'default'],
+        })
+      )
+
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        sharp$: false,
+        'onnxruntime-node$': false,
+      }
+      return config
+    },
+    swcMinify: false,
+  }
+}
+
+export default initConfig()

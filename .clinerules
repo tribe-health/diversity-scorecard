@@ -1,0 +1,73 @@
+## Project Definition
+Next.js 15 + React 18 + TypeScript Diversity Scorecard application for clinical trials
+
+## Critical Rules
+- NEVER modify tsconfig.json
+- NEVER create src directory
+- NEVER suggest new packages without checking package.json first
+- NEVER modify database schemas
+- NEVER create new database instances
+- Use existing instances:
+  * Drizzle ORM
+  * PGLite at app/database/.client/db.ts
+
+## File Structure (Immutable)
+Use ONLY these path aliases from tsconfig.json:
+- @/components: UI components
+- @/lib: Library code
+- @/app/api: API routes
+- @/app/database: PGLite + migrations
+- @/types: Shared types
+
+## Core Technologies
+1. Database: PGLite (browser-based)
+   - Reference: docs/pglite/*.md
+2. AI/ML:
+   - Huggingface Transformers (@huggingface/transformers)
+   - Reference: docs/huggingface/*.md
+   - ALL AI routes through app/api/chat/route.ts
+3. UI Framework:
+   - shadcn-ui (components/ui)
+   - assistant-ui (built on shadcn-ui)
+
+## Development Standards
+- Package Manager: pnpm exclusively
+- File Naming: lowercase-with-dashes
+- TypeScript: Strict mode, no 'any' type
+- Error Handling: try/catch required
+
+## Bug Fixing Protocol
+1. Verify against package.json before suggesting dependencies
+2. Focus on compilation errors only
+3. Preserve existing functionality
+4. Minimize new file creation
+5. Use existing database instances only
+6. Maintain current project structure
+
+## Code Generation Rules
+1. Follow TypeScript strict mode
+2. Use existing path aliases only
+3. Implement proper error handling
+4. Maintain file naming convention
+5. Respect existing architecture
+
+## Code Generation Rules for PGLite
+1. NEVER EVER run multiple statements in a query.  Always split SQL code up into one statement per query.
+2. When running a query that creates an extension, you check to see if it failed by wrapping it in try/catch exception handling like the following:
+
+   ```typescript
+      // Create extensions
+    try {
+      await pglite.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";');
+      console.log('uuid-ossp extension enabled');
+
+      await pglite.query('CREATE EXTENSION IF NOT EXISTS vector;');
+      console.log('vector extension enabled');
+    } catch (error) {
+      console.error('Failed to enable extensions:', error instanceof Error ? error.message : error);
+      throw error;
+    }
+    ```
+3. Always be mindful of the execution context of the code being generated--client or server--and avoid any attempts to run `pglite` code in server context.  This can be avoided by putting all code in a `.client` directory.
+
+4. When running scripts at development time to prepare `pglite` databases, remember that whatever is done with extensions, etc. must be repeated in any client code you run, since that will be a different instance.
